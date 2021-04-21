@@ -1,0 +1,136 @@
+{% extends "albums/base.html" %}
+
+
+
+{% block content %}
+<h4 class="bg-primary text-white p-2" style="margin: 15px;">My instructor activities</h4>
+    <!-- Editor form -->
+    <div id="customForm">
+        <div class="row">
+            <div class ='col-12'>
+                <editor-field name="title"></editor-field>
+                <editor-field name="note"></editor-field>
+                <editor-field name="upload"></editor-field>
+                <editor-field name="instructor.id"></editor-field>
+                <editor-field name="archive"></editor-field>
+            </div>
+        </div>
+    </div><!-- End Editor form -->
+    <!-- Cardbox -->
+    <div class="card-box">
+        <!-- Datatables -->
+        <div class = "row">
+            <div class="col-8" id="commands"></div>
+            <div class="col-4 text-right" id="export"></div>
+        </div>
+        <div class="row">
+            <div class="col-6"></div>
+            <div class="col-6 mb-1 text-right">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="inactive">
+                    <label class="custom-control-label" for="inactive">Show inactive</label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <table id="mytable" class="table-sm table-bordered table-hover" style='width:100%'>
+                    <thead class="thead-light">
+                    <tr>
+                        <td>Title</td>
+                        <td>Instructor</td>
+                        <td>Date created</td>
+                        <td>Action</td>
+                    </tr>
+                    </thead>
+                </table>
+            </div>
+        </div> <!-- End Datatables -->
+    </div> <!-- End Cardbox -->
+    
+{% endblock %}
+{% block extra_js %}
+    <script>
+        $(document).ready(function () {
+            editor = new $.fn.dataTable.Editor({
+                ajax: "/api/albums/?format=datatables",
+
+                table: "#mytable",
+                template: '#customForm',
+                idSrc:  "id",
+                formOptions: {
+                    main: {
+                        submit: 'changed',
+                    },
+                },
+                display: 'bootstrap',
+                fields: [{
+                    label: "Title",
+                    name: "title",
+                }, {
+                    label: "Note:",
+                    name: "note",
+                    type: "textarea"
+                }, {
+                    label: "Upload:",
+                    name: "upload",
+                    type:"upload",
+                    display: function ( val ) {
+                        return table.file( 'files', fileId ).fileName;
+                    },
+                    clearText: "Clear",
+                }, {
+                    label: "Instructor:",
+                    name: "instructor.id",
+                    type:"select", 
+                    placeholder:"Choose"
+                }, {
+                    label: "Archive:",
+                    name: "archive",
+                    type:"checkbox",
+                    options:[{label:'', value: true}],
+                    separator:'',
+                    unselectedValue: false
+                }]
+            });
+
+            var table = $('#mytable').DataTable({
+                "serverSide": true,
+                dom: "Bfrtip",
+                "ajax": "/api/albums/?format=datatables",
+                "columns": [
+                    {"data": "rank", "searchable": false},
+                    {"data": "artist.name", "name": "artist.name"},
+                    {"data": "name"},
+                    {"data": "year"},
+                    {"data": "genres", "name": "genres.name", "sortable": false},
+                ],
+                select: true,
+                buttons: [
+                    {extend: "create", editor: editor},
+                    {extend: "edit", editor: editor},
+                    {extend: "remove", editor: editor}
+                ]
+            });
+
+            // $('.btn-decade').on('click', function () {
+            //     table.columns().search('');
+            //     var rel = $(this).attr('rel');
+            //     if (rel) {
+            //         table.columns(3).search('^' + rel + '[0-9]$', true).draw();
+            //     } else {
+            //         table.draw();
+            //     }
+            // });
+
+            // table.buttons().container()
+            //     .appendTo($('.col-md-6:eq(0)', table.table().container()));
+
+            // $('#albums_minimal').DataTable({
+            //     "search": {"regex": true},
+            //     "language": {"searchPlaceholder": "regular expression"}
+            // });
+
+        });
+    </script>
+{% endblock %}

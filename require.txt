@@ -1,0 +1,21 @@
+https://mpv.tickets.com/api/pvodc/v1/events/seatmap/1190/availability/?pid=8850889&agency=MLB_MPV&orgId=38129
+this is xml link
+but you can't see it directly
+one way
+open this url on your browser
+https://mpv.tickets.com/?agency=MLB_MPV&orgid=38129&pid=8850889
+and replace again the first url
+then you can see the xml
+
+but it will be block about 3 times reload
+I want to get xml from these links without block.
+
+https://mpv.tickets.com/api/pvodc/v1/events/seatmap/1190/availability/?pid=8850889&agency=MLB_MPV&orgId=38129
+https://mpv.tickets.com/api/pvodc/v1/events/seatmap/1191/availability/?pid=8850889&agency=MLB_MPV&orgId=38129
+https://mpv.tickets.com/api/pvodc/v1/events/seatmap/1192/availability/?pid=8850889&agency=MLB_MPV&orgId=38129
+https://mpv.tickets.com/api/pvodc/v1/events/seatmap/1193/availability/?pid=8850889&agency=MLB_MPV&orgId=38129
+....
+
+I need to get bulk xml data per day.
+
+time for single-threaded script to complete and get 30 sections should target 1 minute (2 minutes max which equals 4 seconds per URL)

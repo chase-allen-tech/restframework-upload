@@ -1,0 +1,17 @@
+albums.html
+In this file the javascript part renders the content and submit ajax call to the server.
+display: function() : is just for displaying uploaded data in table.
+render: function(): is for displaying filedata to the dialog box.
+
+views.py
+The uploaded file is sent to the view.py/create() method.
+Here according to the "action" type, can do create, update, and delete document.
+content_type is for the file types what you are inserting.
+
+serializer.py
+save() methods leads control to the serializer.py/create() method.
+Here the actual model operation is done.
+3 models are related with each other. And the root model operation will effect to the other models.
+
+
+Thanks.

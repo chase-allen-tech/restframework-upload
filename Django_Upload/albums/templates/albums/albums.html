@@ -1,0 +1,353 @@
+{% extends "albums/base.html" %}
+{% block content %}
+
+<style>
+    .editor_upload .rendered {
+        overflow-wrap: anywhere;
+    }
+</style>
+
+<div class="row">
+    <div class="col-sm-12 text-center">
+        <h4 class="bg-primary text-white p-2" style="margin: 15px;">Full example with foreign key and many to many
+            relation</h4>
+        <div class="btn-group btn-group-toggle" role="group" aria-label="Decades">
+            <button class="btn btn-success btn-decade">All time</button>
+            <button class="btn btn-primary btn-decade" rel="195">50's</button>
+            <button class="btn btn-primary btn-decade" rel="196">60's</button>
+            <button class="btn btn-primary btn-decade" rel="197">70's</button>
+            <button class="btn btn-primary btn-decade" rel="198">80's</button>
+            <button class="btn btn-primary btn-decade" rel="199">90's</button>
+            <button class="btn btn-primary btn-decade" rel="200">00's</button>
+            <button class="btn btn-primary btn-decade" rel="201">10's</button>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <table id="albums" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Artist</th>
+                    <th>Album name</th>
+                    <th>Year</th>
+                    <th>Genres</th>
+                    <th>File</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 text-center">
+        <h4 class="bg-primary text-white p-2" style="margin: 15px;">Minimal example with data attributes</h4>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-12">
+        <table id="albums_minimal" class="table table-striped table-bordered" style="width:100%" data-server-side="true"
+            data-ajax="/api/albums/?format=datatables">
+            <thead>
+                <tr>
+                    <th data-data="rank">Rank</th>
+                    <th data-data="artist_name" data-name="artist_name">Artist</th>
+                    <th data-data="name">Album name</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+<footer class="footer" style="margin-top: 25px;">
+    <div class="container">
+        <p class="text-muted text-center">
+            Copyright © 2018 David Jean Louis -
+            Data from <a href="https://data.world/notgibs/rolling-stones-top-500-albums" target="_blank">data.world</a>
+        </p>
+    </div>
+</footer>
+{% endblock %}
+{% block extra_js %}
+<script>
+    $(document).ready(function () {
+        $.fn.dataTable.ext.errMode = "throw";
+        editor = new $.fn.dataTable.Editor({
+            ajax: "/api/albums/?format=datatables",
+
+            table: "#albums",
+            fields: [{
+                label: "rank",
+                name: "rank",
+            }, {
+                label: "artist:",
+                name: "artist.id",
+                type: "select"
+            }, {
+                label: "name:",
+                name: "name",
+            }, {
+                label: "year:",
+                name: "year",
+            },
+            {
+                label: "File:",
+                name: "file",
+                type: "upload",
+                display: function (file) {
+                    if (file != null)
+                        if (file.hasOwnProperty("name"))
+                            return file.name;
+                    return "Null";
+                },
+                clearText: "Clear",
+                noImageText: 'No image'
+            }
+            ]
+        });
+
+        var table = $('#albums').DataTable({
+            "serverSide": true,
+            dom: "Bfrtip",
+            "ajax": "/api/albums/?format=datatables",
+            "columns": [
+                { "data": "rank", "searchable": false },
+                { "data": "artist.name", "name": "artist.name" },
+                { "data": "name" },
+                { "data": "year" },
+                { "data": "genres", "name": "genres.name", "sortable": false },
+                {
+                    "data": "file",
+                    render: function (file) {
+                        if (file != null)
+                            if (file.hasOwnProperty("name"))
+                                return file.name;
+                        return "Null";
+                        // return file_id.name ? file_id.name : "Null";
+                        // return file_id ? '<img src="' + editor.file('files', file_id).web_path + '"/>' : null;
+                    },
+                    "defaultContent": "No File",
+                    "title": "File"
+                }
+            ],
+            select: true,
+            buttons: [
+                { extend: "create", editor: editor },
+                { extend: "edit", editor: editor },
+                { extend: "remove", editor: editor }
+            ]
+        });
+
+        $('.btn-decade').on('click', function () {
+            table.columns().search('');
+            var rel = $(this).attr('rel');
+            if (rel) {
+                table.columns(3).search('^' + rel + '[0-9]$', true).draw();
+            } else {
+                table.draw();
+            }
+        });
+
+        table.buttons().container()
+            .appendTo($('.col-md-6:eq(0)', table.table().container()));
+
+        $('#albums_minimal').DataTable({
+            "search": { "regex": true },
+            "language": { "searchPlaceholder": "regular expression" }
+        });
+
+
+        //////////////////////////////////////////////////////////////////////////
+        Editor.upload = function (editor, conf, files, progressCallback, completeCallback) {
+            var reader = new FileReader();
+            var counter = 0;
+            var ids = [];
+            var generalError = 'A server error occurred while uploading the file';
+
+            // Clear any existing errors, as the new upload might not be in error
+            editor.error(conf.name, '');
+
+            if (typeof conf.ajax === 'function') {
+                conf.ajax(files, function (ids) {
+                    completeCallback.call(editor, ids);
+                });
+                return;
+            }
+
+            progressCallback(conf, conf.fileReadText || "<i>Uploading file</i>");
+
+            reader.onload = function (e) {
+                var data = new FormData();
+                var ajax;
+
+                data.append('action', 'upload');
+                data.append('uploadField', conf.name);
+                data.append('upload', files[counter]);
+
+                if (conf.ajaxData) {
+                    conf.ajaxData(data, files[counter], counter);
+                }
+
+                if (conf.ajax) {
+                    ajax = conf.ajax;
+                }
+                else if ($.isPlainObject(editor.s.ajax)) {
+                    ajax = editor.s.ajax.upload ?
+                        editor.s.ajax.upload :
+                        editor.s.ajax;
+                }
+                else if (typeof editor.s.ajax === 'string') {
+                    ajax = editor.s.ajax;
+                }
+
+                if (!ajax) {
+                    throw new Error('No Ajax option specified for upload plug-in');
+                }
+
+                if (typeof ajax === 'string') {
+                    ajax = { url: ajax };
+                }
+
+                // Handle the case when the ajax data is given as a function
+                if (typeof ajax.data === 'function') {
+                    var d = {};
+                    var ret = ajax.data(d);
+
+                    // Allow the return to be used, or the object passed in
+                    if (ret !== undefined && typeof ret !== 'string') {
+                        d = ret;
+                    }
+
+                    $.each(d, function (key, value) {
+                        data.append(key, value);
+                    });
+                }
+                else if ($.isPlainObject(ajax.data)) {
+                    throw new Error('Upload feature cannot use `ajax.data` with an object. Please use it as a function instead.');
+                }
+
+                // Dev cancellable event
+                var preRet = editor._event('preUpload', [conf.name, files[counter], data]);
+                if (preRet === false) {
+                    if (counter < files.length - 1) {
+                        counter++;
+                        reader.readAsDataURL(files[counter]);
+                    }
+                    else {
+                        completeCallback.call(editor, ids);
+                    }
+                    return;
+                }
+
+                // Use preSubmit to stop form submission during an upload, since the
+                // value won't be known until that point.
+                var submit = false;
+                editor
+                    .on('preSubmit.DTE_Upload', function () {
+                        submit = true;
+                        return false;
+                    });
+
+                $.ajax($.extend({}, ajax, {
+                    type: 'post',
+                    data: data,
+                    dataType: 'json',
+                    contentType: false,
+                    processData: false,
+                    xhr: function () {
+                        var xhr = $.ajaxSettings.xhr();
+
+                        if (xhr.upload) {
+                            xhr.upload.onprogress = function (e) {
+                                if (e.lengthComputable) {
+                                    var percent = (e.loaded / e.total * 100).toFixed(0) + "%";
+
+                                    progressCallback(conf, files.length === 1 ?
+                                        percent :
+                                        counter + ':' + files.length + ' ' + percent
+                                    );
+                                }
+                            };
+                            xhr.upload.onloadend = function (e) {
+                                progressCallback(conf, conf.processingText || 'Processing');
+                            };
+                        }
+
+                        return xhr;
+                    },
+                    success: function (json) {
+                        console.log("11************************************* BEGIN");
+                        editor.off('preSubmit.DTE_Upload');
+                        editor._event('uploadXhrSuccess', [conf.name, json]);
+
+                        if (json.fieldErrors && json.fieldErrors.length) {
+                            var errors = json.fieldErrors;
+
+                            for (var i = 0, ien = errors.length; i < ien; i++) {
+                                editor.error(errors[i].name, errors[i].status);
+                            }
+                        }
+                        else if (json.error) {
+                            editor.error(json.error);
+                        }
+                        else if (!json.upload || !json.upload.id) {
+                            console.log(json);
+                            console.log(files);
+                            editor.error(conf.name, generalError);
+                        }
+                        else {
+                            console.log("ENTERED");
+                            console.log(json);
+                            if (json.files) {
+                                // Loop over the tables that are defined
+                                $.each(json.files, function (table, files) {
+                                    if (!Editor.files[table]) {
+                                        Editor.files[table] = {};
+                                    }
+                                    $.extend(Editor.files[table], files);
+                                });
+                            }
+
+                            ids.push(json.upload.id);
+
+                            if (counter < files.length - 1) {
+                                counter++;
+                                reader.readAsDataURL(files[counter]);
+                            }
+                            else {
+                                completeCallback.call(editor, ids);
+
+                                if (submit) {
+                                    editor.submit();
+                                }
+                            }
+                        }
+
+                        progressCallback(conf);
+                        console.log("11************************************** END");
+                    },
+                    error: function (xhr) {
+                        editor.error(conf.name, generalError);
+                        editor._event('uploadXhrError', [conf.name, xhr]);
+
+                        progressCallback(conf);
+                    }
+                }));
+            };
+
+            // Convert to a plain array
+            files = $.map(files, function (val) {
+                return val;
+            });
+
+            // Truncate the selected files if needed
+            if (conf._limitLeft !== undefined) {
+                files.splice(conf._limitLeft, files.length);
+            }
+
+            reader.readAsDataURL(files[0]);
+        };
+
+    });
+</script>
+{% endblock %}
